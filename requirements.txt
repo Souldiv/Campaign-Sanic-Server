@@ -1,0 +1,4 @@
+motor==1.2.2
+Sanic_Cors==0.9.4
+uvloop==0.11.0
+sanic==0.7.0
