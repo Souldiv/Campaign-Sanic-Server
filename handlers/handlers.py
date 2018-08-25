@@ -9,8 +9,7 @@ from GraphQL_setup.schema import schema
 import jwt
 import os
 from functools import wraps
-from firebase_.firebase_db import upload_blob
-import random
+from firebase_.firebase_db import upload_blob, list_files
 
 
 client = motor.motor_asyncio.AsyncIOMotorClient(
@@ -28,22 +27,25 @@ async def protect_graph(next, root, info, **args):
 
 
 # Middleware
-def protected(f):
-    @wraps(f)
-    def wrapper(request):
-        jwt_token = request.headers.get(
-            'authorization', None).split(' ')[1].rstrip()
-        secret = os.environ.get('jwt_secret')
-        decoded_token = jwt.decode(jwt_token, secret)
-        print(decoded_token)
-        try:
-            if decoded_token['auth_level'] >= 3:
-                return f(request)
-            else:
-                raise SanicException("Unauthorized Request", status_code=215)
-        except KeyError:
-            raise SanicException("Trampled jwt, investigate", status_code=217)
-    return wrapper
+def protected(auth_level):
+    def inner_protected(f):
+        @wraps(f)
+        def wrapper(request):
+            jwt_token = request.headers.get(
+                'authorization', None).split(' ')[1].rstrip()
+            secret = os.environ.get('jwt_secret')
+            decoded_token = jwt.decode(jwt_token, secret)
+            try:
+                if decoded_token['auth_level'] >= auth_level:
+                    return f(request)
+                else:
+                    raise SanicException(
+                        "Unauthorized Request", status_code=215)
+            except KeyError:
+                raise SanicException(
+                    "Trampled jwt, investigate", status_code=217)
+        return wrapper
+    return inner_protected
 
 
 # graphql initialization
@@ -52,8 +54,7 @@ async def init_graphql(app, loop):
     app.add_route(GraphQLView.as_view(
         schema=schema,
         executor=AsyncioExecutor(loop=loop),
-        graphiql=True,
-        middleware=[protect_graph]), '/graphql')
+        graphiql=True), '/graphql')
 
 
 # Non-GraphQL Routes
@@ -77,7 +78,7 @@ async def sample_data(request):
 
 
 @app.route('/upload', methods=['POST'])
-@protected
+@protected(auth_level=3)
 async def upload_stuff(request):
     if request.files == {}:
         raise SanicException("No file provided", status_code=216)
@@ -87,7 +88,7 @@ async def upload_stuff(request):
     except KeyError:
         raise SanicException("Illegal filename", status_code=216)
     result = await upload_blob('temp/' + request.files['file']
-                               [0].name, request.files['file'][0].name)
+                               [0].name, request.files['file'][0].name, loop)
     if result:
         return response.json({
             'message': 'File successfuly uploaded',
@@ -97,3 +98,23 @@ async def upload_stuff(request):
         'message': 'Problem with uploading file',
         'status_code': '500'
     }, status=500)
+
+
+@app.route('/download', methods=['POST'])
+@protected(auth_level=3)
+async def download_stuff(request):
+    to_download = request.json
+    name_of_the_file = to_download['file']
+    blob_list, result = await list_files(settings=False)
+    print("blob_list ", blob_list, " result ", result)
+    the_blob = blob_list[result.index(name_of_the_file)]
+    the_blob.download_to_filename('temp/' + name_of_the_file)
+    return response.text("test")
+
+
+@app.route('/test', methods=['GET'])
+async def test_func(request):
+    give_me = await list_files()
+    jk = [j for j in give_me]
+    print("HEersaSD ", jk)
+    return response.text('ites working')

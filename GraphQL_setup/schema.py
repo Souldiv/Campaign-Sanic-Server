@@ -1,5 +1,5 @@
 import graphene
-
+from firebase_.firebase_db import list_files
 """
 Things required for email request
 attachments: images, pdf, zip files
@@ -18,6 +18,19 @@ class Email(graphene.ObjectType):
     about = graphene.NonNull(graphene.String)
     requested_by = graphene.NonNull(graphene.String)
     to_email = graphene.List(graphene.NonNull(graphene.String))
+
+
+class theFiles(graphene.ObjectType):
+    files = graphene.List(graphene.String)
+
+
+class Query(graphene.ObjectType):
+    file_list = graphene.Field(theFiles)
+
+    async def resolve_file_list(self, info):
+        result = await list_files()
+        print(result)
+        return theFiles(result)
 
 
 # Mutations
@@ -39,4 +52,4 @@ class AllMutations(graphene.ObjectType):
     test_email = TestEmail.Field()
 
 
-schema = graphene.Schema(mutation=AllMutations)
+schema = graphene.Schema(query=Query, mutation=AllMutations)

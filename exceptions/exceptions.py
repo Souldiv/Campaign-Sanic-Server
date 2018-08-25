@@ -40,7 +40,7 @@ async def custom_exception(request, exception):
     elif exception.status_code == 216:
         return res.json({
             'error': str(exception),
-            'status_code': 400
+            'status_code': 216
         }, status=400)
 
     elif exception.status_code == 217:
