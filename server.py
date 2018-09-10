@@ -6,7 +6,7 @@ import os
 
 if __name__ == '__main__':
     server = app.create_server(
-        host="0.0.0.0", port=int(os.environ.get('PORT', 6969),), debug=True)
+        host="0.0.0.0", port=int(os.environ.get('PORT', 6969),), debug=False)
     loop = asyncio.get_event_loop()
     task = asyncio.ensure_future(server)
     loop.run_forever()

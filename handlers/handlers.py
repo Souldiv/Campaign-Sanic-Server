@@ -8,6 +8,7 @@ from graphql.execution.executors.asyncio import AsyncioExecutor
 from GraphQL_setup.schema import schema
 import jwt
 import os
+import aiohttp
 from functools import wraps
 from firebase_.firebase_db import upload_blob, list_files
 
@@ -63,10 +64,16 @@ async def sample_data(request):
     try:
         redirect_url = request.args['next'][0]
         print("REDIRECT URL ", redirect_url)
+        req_url = "http://ip-api.com/json/"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(req_url + request.ip) as res:
+                data = await res.text()
         document = {
             'fest_id': request.args['fest'][0],
             'campaign_id': request.args['cid'][0],
-            'source': request.args['source'][0]
+            'source': request.args['source'][0],
+            'ip': request.ip,
+            'data': data
         }
     except KeyError:
         raise ServerError(
@@ -100,21 +107,28 @@ async def upload_stuff(request):
     }, status=500)
 
 
-@app.route('/download', methods=['POST'])
-@protected(auth_level=3)
+@app.route('/download', methods=['POST', 'GET'])
+# @protected(auth_level=3)
 async def download_stuff(request):
-    to_download = request.json
-    name_of_the_file = to_download['file']
+    # to_download = request.json
+    # name_of_the_file = to_download['file']
+    name_of_the_file = "attachments/firebase_db.py"
     blob_list, result = await list_files(settings=False)
     print("blob_list ", blob_list, " result ", result)
     the_blob = blob_list[result.index(name_of_the_file)]
     the_blob.download_to_filename('temp/' + name_of_the_file)
-    return response.text("test")
+    return await response.file(
+        'temp/' + name_of_the_file,
+        filename='root.py',
+        headers={
+            'Content-Disposition': 'attachment'
+        }
+    )
 
 
-@app.route('/test', methods=['GET'])
-async def test_func(request):
-    give_me = await list_files()
-    jk = [j for j in give_me]
-    print("HEersaSD ", jk)
-    return response.text('ites working')
+# @app.route('/test', methods=['GET'])
+# async def test_func(request):
+#     give_me = await list_files()
+#     jk = [j for j in give_me]
+#     print("HEersaSD ", jk)
+#     return response.text('ites working')
