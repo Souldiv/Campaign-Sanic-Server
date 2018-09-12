@@ -11,6 +11,8 @@ import os
 import aiohttp
 from functools import wraps
 from firebase_.firebase_db import upload_blob, list_files
+import time
+import aiofiles
 
 
 client = motor.motor_asyncio.AsyncIOMotorClient(
@@ -59,6 +61,13 @@ async def init_graphql(app, loop):
 
 
 # Non-GraphQL Routes
+@app.route('/redirect', methods=['GET'])
+async def jump_cut(request):
+    async with aiofiles.open('templates/this.html', 'r') as f:
+        to_Serve = await f.read()
+    return response.html(to_Serve)
+
+
 @app.route('/campaign', methods=['GET'])
 async def sample_data(request):
     try:
@@ -68,12 +77,14 @@ async def sample_data(request):
         async with aiohttp.ClientSession() as session:
             async with session.get(req_url + request.ip) as res:
                 data = await res.text()
+        print(request.headers.get('X-Forwarded-For'))
         document = {
             'fest_id': request.args['fest'][0],
             'campaign_id': request.args['cid'][0],
             'source': request.args['source'][0],
-            'ip': request.ip,
-            'data': data
+            'ip': request,
+            'data': data,
+            'timestamp': time.time()
         }
     except KeyError:
         raise ServerError(
