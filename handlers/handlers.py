@@ -11,7 +11,7 @@ import os
 import aiohttp
 from functools import wraps
 from firebase_.firebase_db import upload_blob, list_files
-import time
+import datetime
 import aiofiles
 
 
@@ -75,16 +75,19 @@ async def sample_data(request):
         print("REDIRECT URL ", redirect_url)
         req_url = "http://ip-api.com/json/"
         async with aiohttp.ClientSession() as session:
-            async with session.get(req_url + request.ip) as res:
+            async with session.get(req_url + request.headers.get('X-Forwarded-For')) as res:
                 data = await res.text()
-        print(request.headers.get('X-Forwarded-For'))
+
+        now = datetime.datetime.now(datetime.timezone.utc)
+        strfz = now.strftime("%Y-%m-%d %H:%M:%S")
+
         document = {
             'fest_id': request.args['fest'][0],
             'campaign_id': request.args['cid'][0],
             'source': request.args['source'][0],
-            'ip': request,
+            'ip': request.headers.get('X-Forwarded-For'),
             'data': data,
-            'timestamp': time.time()
+            'timestamp': strfz
         }
     except KeyError:
         raise ServerError(
