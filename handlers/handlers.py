@@ -76,7 +76,7 @@ async def sample_data(request):
         req_url = "http://ip-api.com/json/"
         async with aiohttp.ClientSession() as session:
             async with session.get(req_url + request.headers.get('X-Forwarded-For')) as res:
-                data = await res.text()
+                data = await res.json()
 
         now = datetime.datetime.now(datetime.timezone.utc)
         strfz = now.strftime("%Y-%m-%d %H:%M:%S")
